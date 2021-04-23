@@ -28,7 +28,6 @@ class ZoneAffichage(Canvas):
 
 
     def placer_un_noeud_sur_canevas(self, x_centre, y_centre, col=None, fill_color="black"):
-        w,h = self.get_dims()
         rayon=5
         if col == None :
             col = "red"
@@ -54,6 +53,8 @@ class ZoneAffichage(Canvas):
             if abs(x-event.x) <= r and abs(y-event.y) <= r:
                 print("Deleted : (x,y) = ", x, y)
                 self.__fen_parent.list_node.remove(elt)
+                self.__fen_parent.list_id_node.remove(i)
+
                 del self.__fen_parent.node_info[i]
 
                 for key in list(self.__fen_parent.route_info.keys()):
@@ -109,13 +110,13 @@ class ZoneAffichage(Canvas):
 
 
 class FenPrincipale(Tk):
-    def __init__(self):
+    def __init__(self, cal=False):
         Tk.__init__(self)
         self.title('BAP Solver')
         self.__zoneAffichage = ZoneAffichage(self)
         self.__zoneAffichage.pack()
         self.__var = IntVar()
-
+        self.cal = cal
         # Création des Buttons
         #self.__boutonEffacer = Button(self, text='Undo', command=self.undo_last_node).pack(side=LEFT, padx=5, pady=5)
         self.__bouton1 = Radiobutton(self, text='Add node', command=self.add_node, variable=self.__var, value=1).pack(side=LEFT, padx=5, pady=5)
@@ -124,14 +125,19 @@ class FenPrincipale(Tk):
         self.__bouton4 = Radiobutton(self, text='Line properties', command=self.prop_line, variable=self.__var, value=4).pack(side=LEFT, padx=5, pady=5)
         #self.__bouton5 = Radiobutton(self, text='Reset node', command=self.reset_node, variable=self.__var, value=5).pack(side=LEFT, padx=5, pady=5)
         self.__bouton6 = Button(self, text='Restart', command=self.restart).pack(side=LEFT, padx=5, pady=5)
-        self.__boutonQuitter = Button(self, text='Quit', command=self.destroy).pack(side=LEFT, padx=5, pady=5)
+
+        if self.cal:
+            self.__bouton7 = Button(self, text='Calcul', bg="green", fg="white", command=self.resolve).pack(side=LEFT, padx=5, pady=5)
+
+        self.__boutonQuitter = Button(self, text='Quit',  bg="red", fg="white",  command=self.destroy).pack(side=LEFT, padx=5, pady=5)
         
 
         
         self.__liste_coordonnes_centre_des_nodes=[]
         
         
-        self.list_node=[]
+        self.list_node = []
+        self.list_id_node = []
         self.node_info = dict()
         self.route_info = dict()
         self.route_last = None
@@ -196,6 +202,7 @@ class FenPrincipale(Tk):
         self.__liste_coordonnes_centre_des_nodes.clear()
 
         self.list_node = []
+        self.list_id_node = []
         self.node_info = dict()
         self.route_info = dict()
         self.route_last = None
@@ -203,6 +210,7 @@ class FenPrincipale(Tk):
     def placer_un_noeud(self, x, y):
         node = self.__zoneAffichage.placer_un_noeud_sur_canevas(x,y)
         self.list_node.append(node)
+        self.list_id_node.append(node.get_node_ident())
         self.node_info[node.get_node_ident()] = [0,0]
         self.__liste_coordonnes_centre_des_nodes.append((x,y))
 
@@ -277,10 +285,10 @@ class InfoRoute(Tk):
         frame4.pack()
 
         if self.deja_remp:
-            v1 = StringVar(frame1, value=str(self.parent.route_info[self.id_r][2]))
-            v2 = StringVar(frame2, value=str(self.parent.route_info[self.id_r][3]))
-            v3 = StringVar(frame3, value=str(self.parent.route_info[self.id_r][4]))
-            v4 = StringVar(frame4, value=str(self.parent.route_info[self.id_r][5]))
+            v1 = StringVar(frame1, value=str(self.parent.route_info[self.id_r][0]))
+            v2 = StringVar(frame2, value=str(self.parent.route_info[self.id_r][1]))
+            v3 = StringVar(frame3, value=str(self.parent.route_info[self.id_r][2]))
+            v4 = StringVar(frame4, value=str(self.parent.route_info[self.id_r][3]))
         else:
             v1 = StringVar(frame1, value=str(0))
             v2 = StringVar(frame2, value=str(0))
@@ -321,8 +329,7 @@ class InfoRoute(Tk):
                 x1,y1,_ = self.elt1.get_info_balle()
                 x2,y2,_ = self.elt2.get_info_balle()  
                 line = self.parent.line_noeud(x1, y1, x2, y2, "black", True)
-                print(line)
-                self.parent.route_info[self.id_r] = [id1,id2,n1,n2,n3,n4, line]
+                self.parent.route_info[self.id_r] = [n1,n2,n3,n4, line]
         except:
             print("Error with inputs!")
         
