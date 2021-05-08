@@ -3,7 +3,8 @@ from MACS import MACS
 import numpy as np
 from tkinter import *
 import random
-
+np.random.seed(1)
+random.seed(4)
 class BAP(TK.FenPrincipale):
     def __init__(self):
         TK.FenPrincipale.__init__(self, True)
@@ -84,23 +85,39 @@ class BAP(TK.FenPrincipale):
             return 0
         if self.bus == None:
             vis = self.cal_matrix()
-            visibility = np.zeros((len(vis),len(vis),2))
-            visibility[:,:,0] = vis
-            visibility[:,:,1] = vis
-            print(visibility)
-            passangers = np.ones((len(vis),len(vis)))-len(vis)
-            self.bus = MACS(2,len(vis),2,0.8,visibility,1,0.1,0.8,2,5, visibility, passangers  , 0.3)
-            self.bus.loop(10)
+            num_buslines = 2
+            visibility = np.ones((len(vis)+1,len(vis)+1,num_buslines))
+            visibility[1:,1:,0] = vis
+            visibility[1:,1:,1] = vis
+
+            nb_ants = len(vis)
+            nb_buses = len(vis)
+            nb_buslines = 2
+            tau_0 = 0.8
+            beta = 1
+            rho = 0.4
+            q_0 = 0
+            mainstop = 3 
+            constant = 5
+            time = visibility
+            passangers =  np.ones((nb_buses,nb_buses))-np.eye(nb_buses)
+            alpha = 0.3 
+            t_max = 50
+
+            self.bus = MACS(nb_ants, nb_buses, nb_buslines, tau_0, visibility, beta, rho,q_0,mainstop, constant, time,passangers, alpha)
+            
+            self.bus.loop(t_max)
             self.sol = self.bus.global_solution
+
         print(self.sol)
 
         for line in self.sol:
             col= random.choice(['green', 'blue', 'red', 'magenta', 'black', 'maroon', 'purple', 'navy', 'dark cyan'])
             for i in range(len(line)-1):
-                e1 = self.list_node[line[i]]
+                e1 = self.list_node[line[i]-1]
                 x1,y1,_ = e1.get_info_balle()
 
-                e2 = self.list_node[line[i+1]]
+                e2 = self.list_node[line[i+1]-1]
                 x2,y2,_ = e2.get_info_balle()
 
                 self.line_noeud(x1, y1, x2, y2, col)
@@ -109,3 +126,4 @@ class BAP(TK.FenPrincipale):
 if __name__ == "__main__":
     bap = BAP()
     bap.mainloop()
+
