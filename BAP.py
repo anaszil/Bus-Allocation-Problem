@@ -3,8 +3,7 @@ from MACS import MACS
 import numpy as np
 from tkinter import *
 import random
-np.random.seed(1)
-random.seed(4)
+random.seed(3)
 class BAP(TK.FenPrincipale):
     def __init__(self):
         TK.FenPrincipale.__init__(self, True)
@@ -30,11 +29,7 @@ class BAP(TK.FenPrincipale):
     def cal_matrix(self):
         n = len(self.list_node)
         dist_matrix = self.distance_matrix()
-        print(dist_matrix)
         vit_matrix = np.zeros((n,n)) + 1
-        freq_matrix = np.zeros((n,n)) + 1
-
-        lib_matrix = np.zeros((n,n)) + 1
 
         for key in list(self.route_info.keys()):
             id1, id2 = list(map(int,key.split("-")))
@@ -46,73 +41,49 @@ class BAP(TK.FenPrincipale):
             vit_matrix[id1,id2] = self.route_info[key][1]
             vit_matrix[id2,id1] = self.route_info[key][1]
 
-            freq_matrix[id1,id2] = self.route_info[key][2]
-            freq_matrix[id2,id1] = self.route_info[key][2]
-
-            lib_matrix[id1,id2] = self.route_info[key][3]
-            lib_matrix[id2,id1] = self.route_info[key][3]
-
         temps = dist_matrix/vit_matrix
         
         for i in range(n):
             temps[i,i] = 1e-15
             
         return 1/temps
-
-        # to continue .......
-        # merge other classes
-        """
-        vitesse_matrix = self.route_info[:,:,1]
-        vitesse_matrix = np.where(vitesse_matrix!=-1, vitesse_matrix, 1)
-        vitesse_matrix = np.where(vitesse_matrix!=0, vitesse_matrix, 1e-15)
-        freq_matrix = self.route_info[:,:,2]
-        freq_matrix = np.where(freq_matrix!=-1, freq_matrix, 1)
-        freq_matrix = np.where(freq_matrix!=0, freq_matrix, 1e-15)
-        lib_matrix = self.route_info[:,:,3]
-        lib_matrix = np.where(lib_matrix!=-1, lib_matrix, 1)
-        n = len(self.list_node)
-        lib_matrix += np.repeat(np.array(self.noeud_info)[:,1],n).reshape([n,n])
-        lib_matrix = np.where(lib_matrix!=0, lib_matrix, 1e-15)
-        besoin_matrix = np.repeat(np.array(self.noeud_info)[:,0],n).reshape([n,n])
-        prop_matrix_a = besoin_matrix//lib_matrix
-        prop_matrix_b = besoin_matrix%lib_matrix
-        prop_matrix = ((prop_matrix_a-1)*prop_matrix_a+prop_matrix_b*prop_matrix_a+0.5)/besoin_matrix
-        self.temps_matrix = vit_matrix/dist_matrix
-        """
     
     def resolve(self):
         if len(self.list_node)<2:
             return 0
-        if self.bus == None:
+        if self.bus == None or self.restart:
             vis = self.cal_matrix()
+
+            # cette valeur doit etre changer pour tester avec plusieurs lignes de bus
             num_buslines = 2
             visibility = np.ones((len(vis)+1,len(vis)+1,num_buslines))
-            visibility[1:,1:,0] = vis
-            visibility[1:,1:,1] = vis
+            
+            for i in range(num_buslines):
+                visibility[1:,1:,i] = vis
 
             nb_ants = len(vis)
             nb_buses = len(vis)
-            nb_buslines = 2
             tau_0 = 0.8
             beta = 1
             rho = 0.4
             q_0 = 0
-            mainstop = 3 
+            mainstop = 1
             constant = 5
-            time = visibility
-            passangers =  np.ones((nb_buses,nb_buses))-np.eye(nb_buses)
-            alpha = 0.3 
-            t_max = 50
 
-            self.bus = MACS(nb_ants, nb_buses, nb_buslines, tau_0, visibility, beta, rho,q_0,mainstop, constant, time,passangers, alpha)
+            # passangers[i,j] correspond au nombre de passagers qui sont à la station i 
+            # et qui ont pour destination la station j
+            passangers = np.ones((nb_buses,nb_buses))-np.eye(nb_buses)
+            alpha = 0.3 
+            t_max = 100
+            self.bus = MACS(nb_ants, nb_buses, num_buslines, tau_0, visibility, beta, rho,q_0,mainstop, constant,passangers, alpha)
             
             self.bus.loop(t_max)
             self.sol = self.bus.global_solution
-
-        print(self.sol)
+            self.restart = False
+        print("solution : ",self.sol)
 
         for line in self.sol:
-            col= random.choice(['green', 'blue', 'red', 'magenta', 'black', 'maroon', 'purple', 'navy', 'dark cyan'])
+            col= np.random.choice(['green', 'blue', 'red', 'magenta', 'black', 'maroon', 'purple', 'navy', 'dark cyan'])
             for i in range(len(line)-1):
                 e1 = self.list_node[line[i]-1]
                 x1,y1,_ = e1.get_info_balle()
@@ -121,7 +92,6 @@ class BAP(TK.FenPrincipale):
                 x2,y2,_ = e2.get_info_balle()
 
                 self.line_noeud(x1, y1, x2, y2, col)
-        #self.zoneAffichage.placer_noeud(self.x_nodes[self.bus.arrete_m],self.y_nodes[self.bus.arrete_m],3, "red")
 
 if __name__ == "__main__":
     bap = BAP()

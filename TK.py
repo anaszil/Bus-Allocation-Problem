@@ -1,16 +1,19 @@
+# -*- coding: utf-8 -*-
+"""
+@authors: Aymane and Anas
+"""
+
+
 from tkinter import *
 from tkinter.messagebox import showinfo
 import random
 
-
-# --------------------------------------------------------
-
+random.seed(3)
 
 class ZoneAffichage(Canvas):
     def __init__(self, parent, w=500, h=400, _bg='white'):  # 500x400 : dessin final !
         self.__w = w
         self.__h = h
-        self.__liste_noeuds = []
 
         # Pour avoir un contour pour le Canevas
         self.__fen_parent=parent
@@ -32,7 +35,9 @@ class ZoneAffichage(Canvas):
         if col == None :
             col = "red"
             #col= random.choice(['green', 'blue', 'red', 'magenta', 'black', 'maroon', 'purple', 'navy', 'dark cyan'])
-
+        if not self.__fen_parent.list_node:
+            col = "green"
+        
         node=self.creer_noeud(x_centre, y_centre, rayon , col, fill_color)
         self.update()
 
@@ -113,25 +118,31 @@ class FenPrincipale(Tk):
     def __init__(self, cal=False):
         Tk.__init__(self)
         self.title('BAP Solver')
+        self.__label = Label(self, text = "Nb : le premier noeud déssiné est considéré comme une station centrale")
+        self.__label.config(font =("Courier", 10))
+        self.__label.pack()
+
         self.__zoneAffichage = ZoneAffichage(self)
         self.__zoneAffichage.pack()
         self.__var = IntVar()
         self.cal = cal
+        
         # Création des Buttons
         #self.__boutonEffacer = Button(self, text='Undo', command=self.undo_last_node).pack(side=LEFT, padx=5, pady=5)
         self.__bouton1 = Radiobutton(self, text='Add node', command=self.add_node, variable=self.__var, value=1).pack(side=LEFT, padx=5, pady=5)
         self.__bouton2 = Radiobutton(self, text='Delete node', command=self.delete_node, variable=self.__var, value=2).pack(side=LEFT, padx=5, pady=5)
-        self.__bouton3 = Radiobutton(self, text='Node properties', command=self.prop_node, variable=self.__var, value=3).pack(side=LEFT, padx=5, pady=5)
+        #self.__bouton3 = Radiobutton(self, text='Node properties', command=self.prop_node, variable=self.__var, value=3).pack(side=LEFT, padx=5, pady=5)
         self.__bouton4 = Radiobutton(self, text='Line properties', command=self.prop_line, variable=self.__var, value=4).pack(side=LEFT, padx=5, pady=5)
         #self.__bouton5 = Radiobutton(self, text='Reset node', command=self.reset_node, variable=self.__var, value=5).pack(side=LEFT, padx=5, pady=5)
-        self.__bouton6 = Button(self, text='Restart', command=self.restart).pack(side=LEFT, padx=5, pady=5)
-
-        if self.cal:
-            self.__bouton7 = Button(self, text='Calcul', bg="green", fg="white", command=self.resolve).pack(side=LEFT, padx=5, pady=5)
-
-        self.__boutonQuitter = Button(self, text='Quit',  bg="red", fg="white",  command=self.destroy).pack(side=LEFT, padx=5, pady=5)
         
 
+        
+        self.__boutonQuitter = Button(self, text='Quit',  bg="red", fg="white",  command=self.destroy).pack(side=RIGHT, padx=5, pady=5)
+        
+        if self.cal:
+            self.__bouton7 = Button(self, text='Calcul', bg="green", fg="white", command=self.resolve).pack(side=RIGHT, padx=5, pady=5)
+        
+        self.__bouton6 = Button(self, text='Restart', command=self.restart).pack(side=RIGHT, padx=5, pady=5)
         
         self.__liste_coordonnes_centre_des_nodes=[]
         
@@ -141,10 +152,11 @@ class FenPrincipale(Tk):
         self.node_info = dict()
         self.route_info = dict()
         self.route_last = None
+        self.restart = False
 
         self.hover_text = self.__zoneAffichage.create_text(0,0,fill="red",text="")
 
-        self.bind('<Motion>', self.motion)
+        #self.bind('<Motion>', self.motion)
 
     # detect if we hover a node
     def motion(self, event):
@@ -206,6 +218,11 @@ class FenPrincipale(Tk):
         self.node_info = dict()
         self.route_info = dict()
         self.route_last = None
+
+        if self.cal:
+            self.bus = None
+            self.sol = None
+            self.restart = True
         
     def placer_un_noeud(self, x, y):
         node = self.__zoneAffichage.placer_un_noeud_sur_canevas(x,y)
@@ -277,23 +294,13 @@ class InfoRoute(Tk):
         #frame 2
         frame2 = Frame(self)
         frame2.pack()
-        #frame 3
-        frame3 = Frame(self)
-        frame3.pack()
-        #frame 4
-        frame4 = Frame(self)
-        frame4.pack()
 
         if self.deja_remp:
             v1 = StringVar(frame1, value=str(self.parent.route_info[self.id_r][0]))
             v2 = StringVar(frame2, value=str(self.parent.route_info[self.id_r][1]))
-            v3 = StringVar(frame3, value=str(self.parent.route_info[self.id_r][2]))
-            v4 = StringVar(frame4, value=str(self.parent.route_info[self.id_r][3]))
         else:
             v1 = StringVar(frame1, value=str(0))
-            v2 = StringVar(frame2, value=str(0))
-            v3 = StringVar(frame3, value=str(0))
-            v4 = StringVar(frame4, value=str(0))
+            v2 = StringVar(frame2, value=str(1))
 
         Label(frame1, text="Distance :",width = 15).pack(side = LEFT)
 
@@ -304,16 +311,6 @@ class InfoRoute(Tk):
 
         self.E2 = Entry(frame2, bd=1,width = 30, textvariable=v2)
         self.E2.pack(side = RIGHT)
-
-        Label(frame3, text="Frequence :",width = 15).pack(side = LEFT)
-
-        self.E3 = Entry(frame3, bd=1,width = 30, textvariable=v3)
-        self.E3.pack(side = RIGHT)
-        
-        Label(frame4, text="Nb libre  :",width = 15).pack(side = LEFT)
-
-        self.E4 = Entry(frame4, bd=1,width = 30, textvariable=v4)
-        self.E4.pack(side = RIGHT)
 
         Button(self, text='Enregistrer', command=self.save_quit).pack(side=BOTTOM)
 
